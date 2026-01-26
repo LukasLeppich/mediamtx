@@ -121,9 +121,9 @@ func (s *Source) runReader(nc net.Conn) error {
 	}
 
 	res := s.Parent.SetReady(defs.PathSourceStaticSetReadyReq{
-		Desc:               &description.Session{Medias: medias},
-		GenerateRTPPackets: true,
-		FillNTP:            true,
+		Desc:          &description.Session{Medias: medias},
+		UseRTPPackets: false,
+		ReplaceNTP:    true,
 	})
 	if res.Err != nil {
 		return res.Err
@@ -143,8 +143,8 @@ func (s *Source) runReader(nc net.Conn) error {
 }
 
 // APISourceDescribe implements StaticSource.
-func (*Source) APISourceDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (*Source) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
 		Type: "mpegtsSource",
 		ID:   "",
 	}

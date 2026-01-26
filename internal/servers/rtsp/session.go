@@ -297,7 +297,7 @@ func (s *session) onPlay(_ *gortsplib.ServerHandlerOnPlayCtx) (*base.Response, e
 			ExternalCmdPool: s.externalCmdPool,
 			Conf:            s.path.SafeConf(),
 			ExternalCmdEnv:  s.path.ExternalCmdEnv(),
-			Reader:          s.APIReaderDescribe(),
+			Reader:          *s.APIReaderDescribe(),
 			Query:           s.rsession.Query(),
 		})
 	}
@@ -311,11 +311,11 @@ func (s *session) onPlay(_ *gortsplib.ServerHandlerOnPlayCtx) (*base.Response, e
 // onRecord is called by rtspServer.
 func (s *session) onRecord(_ *gortsplib.ServerHandlerOnRecordCtx) (*base.Response, error) {
 	path, stream, err := s.pathManager.AddPublisher(defs.PathAddPublisherReq{
-		Author:             s,
-		Desc:               s.rsession.AnnouncedDescription(),
-		GenerateRTPPackets: false,
-		FillNTP:            !s.pathConf.UseAbsoluteTimestamp,
-		ConfToCompare:      s.pathConf,
+		Author:        s,
+		Desc:          s.rsession.AnnouncedDescription(),
+		UseRTPPackets: true,
+		ReplaceNTP:    !s.pathConf.UseAbsoluteTimestamp,
+		ConfToCompare: s.pathConf,
 		AccessRequest: defs.PathAccessRequest{
 			Name:     s.rsession.Path()[1:],
 			Query:    s.rsession.Query(),
@@ -360,8 +360,8 @@ func (s *session) onPause(_ *gortsplib.ServerHandlerOnPauseCtx) (*base.Response,
 }
 
 // APIReaderDescribe implements reader.
-func (s *session) APIReaderDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (s *session) APIReaderDescribe() *defs.APIPathReader {
+	return &defs.APIPathReader{
 		Type: func() string {
 			if s.isTLS {
 				return "rtspsSession"
@@ -373,8 +373,16 @@ func (s *session) APIReaderDescribe() defs.APIPathSourceOrReader {
 }
 
 // APISourceDescribe implements source.
-func (s *session) APISourceDescribe() defs.APIPathSourceOrReader {
-	return s.APIReaderDescribe()
+func (s *session) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
+		Type: func() string {
+			if s.isTLS {
+				return "rtspsSession"
+			}
+			return "rtspSession"
+		}(),
+		ID: s.uuid.String(),
+	}
 }
 
 // onPacketLost is called by rtspServer.

@@ -76,9 +76,9 @@ func (s *Source) Run(params defs.StaticSourceRunParams) error {
 	}
 
 	rres := s.Parent.SetReady(defs.PathSourceStaticSetReadyReq{
-		Desc:               &description.Session{Medias: medias},
-		GenerateRTPPackets: true,
-		FillNTP:            !params.Conf.UseAbsoluteTimestamp,
+		Desc:          &description.Session{Medias: medias},
+		UseRTPPackets: true,
+		ReplaceNTP:    !params.Conf.UseAbsoluteTimestamp,
 	})
 	if rres.Err != nil {
 		client.Close() //nolint:errcheck
@@ -114,8 +114,8 @@ func (s *Source) Run(params defs.StaticSourceRunParams) error {
 }
 
 // APISourceDescribe implements StaticSource.
-func (*Source) APISourceDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (*Source) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
 		Type: "webRTCSource",
 		ID:   "",
 	}

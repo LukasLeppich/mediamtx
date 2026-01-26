@@ -76,11 +76,11 @@ func TestServerPublish(t *testing.T) {
 					require.Equal(t, "mypass", req.AccessRequest.Credentials.Pass)
 
 					strm = &stream.Stream{
-						WriteQueueSize:     512,
-						RTPMaxPayloadSize:  1450,
-						Desc:               req.Desc,
-						GenerateRTPPackets: true,
-						Parent:             test.NilLogger,
+						Desc:              req.Desc,
+						UseRTPPackets:     false,
+						WriteQueueSize:    512,
+						RTPMaxPayloadSize: 1450,
+						Parent:            test.NilLogger,
 					}
 					err := strm.Initialize()
 					require.NoError(t, err)
@@ -206,11 +206,11 @@ func TestServerRead(t *testing.T) {
 			desc := &description.Session{Medias: []*description.Media{test.MediaH264}}
 
 			strm := &stream.Stream{
-				WriteQueueSize:     512,
-				RTPMaxPayloadSize:  1450,
-				Desc:               desc,
-				GenerateRTPPackets: true,
-				Parent:             test.NilLogger,
+				Desc:              desc,
+				UseRTPPackets:     false,
+				WriteQueueSize:    512,
+				RTPMaxPayloadSize: 1450,
+				Parent:            test.NilLogger,
 			}
 			err := strm.Initialize()
 			require.NoError(t, err)
@@ -266,9 +266,9 @@ func TestServerRead(t *testing.T) {
 			require.NoError(t, err)
 			defer conn.Close()
 
-			go func() {
-				time.Sleep(500 * time.Millisecond)
+			strm.WaitForReaders()
 
+			go func() {
 				strm.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
 					NTP: time.Time{},
 					Payload: unit.PayloadH264{

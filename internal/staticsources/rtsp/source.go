@@ -244,9 +244,9 @@ func (s *Source) runInner(c *gortsplib.Client, u *base.URL, pathConf *conf.Path)
 		s)
 
 	res := s.Parent.SetReady(defs.PathSourceStaticSetReadyReq{
-		Desc:               desc2,
-		GenerateRTPPackets: false,
-		FillNTP:            !pathConf.UseAbsoluteTimestamp,
+		Desc:          desc2,
+		UseRTPPackets: true,
+		ReplaceNTP:    !pathConf.UseAbsoluteTimestamp,
 	})
 	if res.Err != nil {
 		return res.Err
@@ -270,8 +270,8 @@ func (s *Source) runInner(c *gortsplib.Client, u *base.URL, pathConf *conf.Path)
 }
 
 // APISourceDescribe implements StaticSource.
-func (*Source) APISourceDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (*Source) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
 		Type: "rtspSource",
 		ID:   "",
 	}

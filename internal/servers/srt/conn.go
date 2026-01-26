@@ -103,7 +103,7 @@ func (c *conn) run() { //nolint:dupl
 		RunOnConnectRestart: c.runOnConnectRestart,
 		RunOnDisconnect:     c.runOnDisconnect,
 		RTSPAddress:         c.rtspAddress,
-		Desc:                c.APIReaderDescribe(),
+		Desc:                *c.APIReaderDescribe(),
 	})
 	defer onDisconnectHook()
 
@@ -219,11 +219,11 @@ func (c *conn) runPublishReader(sconn srt.Conn, streamID *streamID, pathConf *co
 
 	var path defs.Path
 	path, strm, err = c.pathManager.AddPublisher(defs.PathAddPublisherReq{
-		Author:             c,
-		Desc:               &description.Session{Medias: medias},
-		GenerateRTPPackets: true,
-		FillNTP:            true,
-		ConfToCompare:      pathConf,
+		Author:        c,
+		Desc:          &description.Session{Medias: medias},
+		UseRTPPackets: false,
+		ReplaceNTP:    true,
+		ConfToCompare: pathConf,
 		AccessRequest: defs.PathAccessRequest{
 			Name:     streamID.path,
 			Query:    streamID.query,
@@ -317,7 +317,7 @@ func (c *conn) runRead(streamID *streamID) error {
 		ExternalCmdPool: c.externalCmdPool,
 		Conf:            path.SafeConf(),
 		ExternalCmdEnv:  path.ExternalCmdEnv(),
-		Reader:          c.APIReaderDescribe(),
+		Reader:          *c.APIReaderDescribe(),
 		Query:           streamID.query,
 	})
 	defer onUnreadHook()
@@ -338,16 +338,19 @@ func (c *conn) runRead(streamID *streamID) error {
 }
 
 // APIReaderDescribe implements reader.
-func (c *conn) APIReaderDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (c *conn) APIReaderDescribe() *defs.APIPathReader {
+	return &defs.APIPathReader{
 		Type: "srtConn",
 		ID:   c.uuid.String(),
 	}
 }
 
 // APISourceDescribe implements source.
-func (c *conn) APISourceDescribe() defs.APIPathSourceOrReader {
-	return c.APIReaderDescribe()
+func (c *conn) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
+		Type: "srtConn",
+		ID:   c.uuid.String(),
+	}
 }
 
 func (c *conn) apiItem() *defs.APISRTConn {

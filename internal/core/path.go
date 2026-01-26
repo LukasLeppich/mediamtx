@@ -379,7 +379,7 @@ func (pa *path) doReloadConf(newConf *conf.Path) {
 }
 
 func (pa *path) doSourceStaticSetReady(req defs.PathSourceStaticSetReadyReq) {
-	err := pa.setReady(req.Desc, req.GenerateRTPPackets, req.FillNTP)
+	err := pa.setReady(req.Desc, req.UseRTPPackets, req.ReplaceNTP)
 	if err != nil {
 		req.Res <- defs.PathSourceStaticSetReadyRes{Err: err}
 		return
@@ -476,7 +476,7 @@ func (pa *path) doAddPublisher(req defs.PathAddPublisherReq) {
 	pa.source = req.Author
 	pa.publisherQuery = req.AccessRequest.Query
 
-	err := pa.setReady(req.Desc, req.GenerateRTPPackets, req.FillNTP)
+	err := pa.setReady(req.Desc, req.UseRTPPackets, req.ReplaceNTP)
 	if err != nil {
 		pa.source = nil
 		req.Res <- defs.PathAddPublisherRes{Err: err}
@@ -550,12 +550,12 @@ func (pa *path) doAPIPathsGet(req pathAPIPathsGetReq) {
 		data: &defs.APIPath{
 			Name:     pa.name,
 			ConfName: pa.conf.Name,
-			Source: func() *defs.APIPathSourceOrReader {
+			Source: func() *defs.APIPathSource {
 				if pa.source == nil {
 					return nil
 				}
 				v := pa.source.APISourceDescribe()
-				return &v
+				return v
 			}(),
 			Ready: pa.isReady(),
 			ReadyTime: func() *time.Time {
@@ -583,10 +583,12 @@ func (pa *path) doAPIPathsGet(req pathAPIPathsGetReq) {
 				}
 				return pa.stream.BytesSent()
 			}(),
-			Readers: func() []defs.APIPathSourceOrReader {
-				ret := []defs.APIPathSourceOrReader{}
+			Readers: func() []defs.APIPathReader {
+				ret := make([]defs.APIPathReader, len(pa.readers))
+				i := 0
 				for r := range pa.readers {
-					ret = append(ret, r.APIReaderDescribe())
+					ret[i] = *r.APIReaderDescribe()
+					i++
 				}
 				return ret
 			}(),
@@ -686,14 +688,14 @@ func (pa *path) onDemandPublisherStop(reason string) {
 	pa.onDemandPublisherState = pathOnDemandStateInitial
 }
 
-func (pa *path) setReady(desc *description.Session, generateRTPPackets bool, fillNTP bool) error {
+func (pa *path) setReady(desc *description.Session, useRTPPackets bool, replaceNTP bool) error {
 	pa.stream = &stream.Stream{
-		WriteQueueSize:     pa.writeQueueSize,
-		RTPMaxPayloadSize:  pa.rtpMaxPayloadSize,
-		Desc:               desc,
-		GenerateRTPPackets: generateRTPPackets,
-		FillNTP:            fillNTP,
-		Parent:             pa.source,
+		Desc:              desc,
+		UseRTPPackets:     useRTPPackets,
+		WriteQueueSize:    pa.writeQueueSize,
+		RTPMaxPayloadSize: pa.rtpMaxPayloadSize,
+		ReplaceNTP:        replaceNTP,
+		Parent:            pa.source,
 	}
 	err := pa.stream.Initialize()
 	if err != nil {
@@ -711,7 +713,7 @@ func (pa *path) setReady(desc *description.Session, generateRTPPackets bool, fil
 		ExternalCmdPool: pa.externalCmdPool,
 		Conf:            pa.conf,
 		ExternalCmdEnv:  pa.ExternalCmdEnv(),
-		Desc:            pa.source.APISourceDescribe(),
+		Desc:            *pa.source.APISourceDescribe(),
 		Query:           pa.publisherQuery,
 	})
 

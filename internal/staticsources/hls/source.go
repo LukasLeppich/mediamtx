@@ -97,8 +97,9 @@ func (s *Source) Run(params defs.StaticSourceRunParams) error {
 			}
 
 			res := s.Parent.SetReady(defs.PathSourceStaticSetReadyReq{
-				Desc:               &description.Session{Medias: medias},
-				GenerateRTPPackets: true,
+				Desc:          &description.Session{Medias: medias},
+				UseRTPPackets: false,
+				ReplaceNTP:    false,
 			})
 			if res.Err != nil {
 				return res.Err
@@ -137,8 +138,8 @@ func (s *Source) Run(params defs.StaticSourceRunParams) error {
 }
 
 // APISourceDescribe implements StaticSource.
-func (*Source) APISourceDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (*Source) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
 		Type: "hlsSource",
 		ID:   "",
 	}

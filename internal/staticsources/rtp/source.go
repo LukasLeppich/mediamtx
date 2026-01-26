@@ -18,6 +18,7 @@ import (
 	"github.com/bluenviron/mediamtx/internal/protocols/udp"
 	"github.com/bluenviron/mediamtx/internal/protocols/unix"
 	"github.com/bluenviron/mediamtx/internal/stream"
+	"github.com/bluenviron/mediamtx/internal/unit"
 	"github.com/pion/rtp"
 )
 
@@ -175,9 +176,9 @@ func (s *Source) runReader(desc *description.Session, nc net.Conn) error {
 
 		if strm == nil {
 			res := s.Parent.SetReady(defs.PathSourceStaticSetReadyReq{
-				Desc:               desc,
-				GenerateRTPPackets: false,
-				FillNTP:            true,
+				Desc:          desc,
+				UseRTPPackets: true,
+				ReplaceNTP:    true,
 			})
 			if res.Err != nil {
 				return res.Err
@@ -207,14 +208,17 @@ func (s *Source) runReader(desc *description.Session, nc net.Conn) error {
 				continue
 			}
 
-			strm.WriteRTPPacket(media.desc, forma.desc, pkt, time.Time{}, pts)
+			strm.WriteUnit(media.desc, forma.desc, &unit.Unit{
+				PTS:        pts,
+				RTPPackets: []*rtp.Packet{pkt},
+			})
 		}
 	}
 }
 
 // APISourceDescribe implements StaticSource.
-func (*Source) APISourceDescribe() defs.APIPathSourceOrReader {
-	return defs.APIPathSourceOrReader{
+func (*Source) APISourceDescribe() *defs.APIPathSource {
+	return &defs.APIPathSource{
 		Type: "rtpSource",
 		ID:   "",
 	}
