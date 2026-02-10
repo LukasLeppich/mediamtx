@@ -1,10 +1,13 @@
 package stream
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/bluenviron/gortsplib/v5/pkg/description"
 	"github.com/bluenviron/gortsplib/v5/pkg/format"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediamtx/internal/conf"
 	"github.com/bluenviron/mediamtx/internal/logger"
 	"github.com/bluenviron/mediamtx/internal/unit"
 	"github.com/pion/rtp"
@@ -30,13 +33,19 @@ func TestStream(t *testing.T) {
 
 	strm := &Stream{
 		Desc:              desc,
-		UseRTPPackets:     false,
 		WriteQueueSize:    512,
 		RTPMaxPayloadSize: 1450,
 	}
 	err := strm.Initialize()
 	require.NoError(t, err)
 	defer strm.Close()
+
+	subStream := &SubStream{
+		Stream:        strm,
+		UseRTPPackets: false,
+	}
+	err = subStream.Initialize()
+	require.NoError(t, err)
 
 	r := &Reader{}
 
@@ -50,7 +59,7 @@ func TestStream(t *testing.T) {
 	strm.AddReader(r)
 	defer strm.RemoveReader(r)
 
-	strm.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
+	subStream.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
 		PTS: 30000 * 2,
 		Payload: unit.PayloadH264{
 			{5, 2}, // IDR
@@ -84,6 +93,13 @@ func TestStreamSkipBytesSent(t *testing.T) {
 	require.NoError(t, err)
 	defer strm.Close()
 
+	subStream := &SubStream{
+		Stream:        strm,
+		UseRTPPackets: false,
+	}
+	err = subStream.Initialize()
+	require.NoError(t, err)
+
 	r := &Reader{
 		SkipBytesSent: true,
 	}
@@ -98,7 +114,7 @@ func TestStreamSkipBytesSent(t *testing.T) {
 	strm.AddReader(r)
 	defer strm.RemoveReader(r)
 
-	strm.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
+	subStream.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
 		PTS: 30000 * 2,
 		Payload: unit.PayloadH264{
 			{5, 2}, // IDR
@@ -128,7 +144,6 @@ func TestStreamResizeOversizedRTPPackets(t *testing.T) {
 
 	strm := &Stream{
 		Desc:              desc,
-		UseRTPPackets:     true,
 		WriteQueueSize:    512,
 		RTPMaxPayloadSize: 400,
 		Parent:            &nilLogger{},
@@ -136,6 +151,13 @@ func TestStreamResizeOversizedRTPPackets(t *testing.T) {
 	err := strm.Initialize()
 	require.NoError(t, err)
 	defer strm.Close()
+
+	subStream := &SubStream{
+		Stream:        strm,
+		UseRTPPackets: true,
+	}
+	err = subStream.Initialize()
+	require.NoError(t, err)
 
 	r := &Reader{}
 
@@ -157,7 +179,7 @@ func TestStreamResizeOversizedRTPPackets(t *testing.T) {
 	strm.AddReader(r)
 	defer strm.RemoveReader(r)
 
-	strm.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
+	subStream.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
 		PTS: 90000,
 		RTPPackets: []*rtp.Packet{
 			{
@@ -179,7 +201,7 @@ func TestStreamResizeOversizedRTPPackets(t *testing.T) {
 		oversizedPayload[i] = byte(i % 256)
 	}
 
-	strm.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
+	subStream.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
 		PTS: 90000,
 		RTPPackets: []*rtp.Packet{
 			{
@@ -310,13 +332,19 @@ func TestStreamUpdateFormatParams(t *testing.T) {
 
 			strm := &Stream{
 				Desc:              desc,
-				UseRTPPackets:     false,
 				WriteQueueSize:    512,
 				RTPMaxPayloadSize: 1450,
 			}
 			err := strm.Initialize()
 			require.NoError(t, err)
 			defer strm.Close()
+
+			subStream := &SubStream{
+				Stream:        strm,
+				UseRTPPackets: false,
+			}
+			err = subStream.Initialize()
+			require.NoError(t, err)
 
 			r := &Reader{}
 			recv := make(chan struct{})
@@ -329,7 +357,8 @@ func TestStreamUpdateFormatParams(t *testing.T) {
 			strm.AddReader(r)
 			defer strm.RemoveReader(r)
 
-			strm.WriteUnit(media, forma, u)
+			subStream.WriteUnit(media, forma, u)
+
 			<-recv
 
 			// Verify that format parameters were updated
@@ -1198,7 +1227,6 @@ func TestStreamDecode(t *testing.T) {
 
 			strm := &Stream{
 				Desc:              desc,
-				UseRTPPackets:     true,
 				WriteQueueSize:    512,
 				RTPMaxPayloadSize: 1450,
 				Parent:            &nilLogger{},
@@ -1206,6 +1234,13 @@ func TestStreamDecode(t *testing.T) {
 			err := strm.Initialize()
 			require.NoError(t, err)
 			defer strm.Close()
+
+			subStream := &SubStream{
+				Stream:        strm,
+				UseRTPPackets: true,
+			}
+			err = subStream.Initialize()
+			require.NoError(t, err)
 
 			r := &Reader{}
 			recv := make(chan *unit.Unit)
@@ -1222,7 +1257,7 @@ func TestStreamDecode(t *testing.T) {
 			defer strm.RemoveReader(r)
 
 			for _, pkt := range ca.encoded {
-				strm.WriteUnit(desc.Medias[0], ca.format, &unit.Unit{
+				subStream.WriteUnit(desc.Medias[0], ca.format, &unit.Unit{
 					RTPPackets: []*rtp.Packet{pkt},
 				})
 			}
@@ -1242,7 +1277,6 @@ func TestStreamEncode(t *testing.T) {
 
 			strm := &Stream{
 				Desc:              desc,
-				UseRTPPackets:     false,
 				WriteQueueSize:    512,
 				RTPMaxPayloadSize: 1450,
 				Parent:            &nilLogger{},
@@ -1250,6 +1284,13 @@ func TestStreamEncode(t *testing.T) {
 			err := strm.Initialize()
 			require.NoError(t, err)
 			defer strm.Close()
+
+			subStream := &SubStream{
+				Stream:        strm,
+				UseRTPPackets: false,
+			}
+			err = subStream.Initialize()
+			require.NoError(t, err)
 
 			r := &Reader{}
 			recv := make(chan struct{})
@@ -1268,11 +1309,196 @@ func TestStreamEncode(t *testing.T) {
 			strm.AddReader(r)
 			defer strm.RemoveReader(r)
 
-			strm.WriteUnit(desc.Medias[0], ca.format, &unit.Unit{
+			subStream.WriteUnit(desc.Medias[0], ca.format, &unit.Unit{
 				Payload: ca.decoded,
 			})
 
 			<-recv
+		})
+	}
+}
+
+func TestStreamAlwaysAvailable(t *testing.T) {
+	strm := &Stream{
+		AlwaysAvailable: true,
+		AlwaysAvailableTracks: []conf.AlwaysAvailableTrack{
+			{Codec: conf.CodecH264},
+			{Codec: conf.CodecOpus, SampleRate: 48000, ChannelCount: 2},
+		},
+		WriteQueueSize:    512,
+		RTPMaxPayloadSize: 1450,
+		ReplaceNTP:        true,
+		Parent:            &nilLogger{},
+	}
+	err := strm.Initialize()
+	require.NoError(t, err)
+	defer strm.Close()
+
+	r := &Reader{
+		Parent: &nilLogger{},
+	}
+
+	recv1 := make(chan struct{})
+	recv2 := make(chan struct{})
+	var lastPTS int64
+
+	r.OnData(strm.Desc.Medias[0], strm.Desc.Medias[0].Formats[0], func(u *unit.Unit) error {
+		require.GreaterOrEqual(t, u.PTS, lastPTS)
+		lastPTS = u.PTS
+
+		select {
+		case <-recv1:
+		default:
+			close(recv1)
+		}
+
+		if len(u.Payload.(unit.PayloadH264)) == 3 && bytes.Equal(u.Payload.(unit.PayloadH264)[2], []byte{5, 2}) {
+			close(recv2)
+		}
+
+		return nil
+	})
+
+	strm.AddReader(r)
+	defer strm.RemoveReader(r)
+
+	<-recv1
+
+	desc := &description.Session{Medias: []*description.Media{
+		{
+			Type:    description.MediaTypeVideo,
+			Formats: []format.Format{&format.H264{}},
+		},
+		{
+			Type:    description.MediaTypeAudio,
+			Formats: []format.Format{&format.Opus{}},
+		},
+	}}
+
+	subStream := &SubStream{
+		Stream:        strm,
+		CurDesc:       desc,
+		UseRTPPackets: false,
+	}
+	err = subStream.Initialize()
+	require.NoError(t, err)
+
+	subStream.WriteUnit(desc.Medias[0], desc.Medias[0].Formats[0], &unit.Unit{
+		PTS: 90000,
+		Payload: unit.PayloadH264{
+			{5, 2}, // IDR
+		},
+	})
+
+	<-recv2
+}
+
+func TestStreamAlwaysAvailableErrors(t *testing.T) {
+	for _, ca := range []struct {
+		name   string
+		tracks []conf.AlwaysAvailableTrack
+		desc   *description.Session
+		err    string
+	}{
+		{
+			"wrong tracks",
+			[]conf.AlwaysAvailableTrack{
+				{Codec: "H264"},
+				{Codec: "H265"},
+			},
+			&description.Session{
+				Medias: []*description.Media{
+					{
+						Type:    description.MediaTypeVideo,
+						Formats: []format.Format{&format.H264{}},
+					},
+				},
+			},
+			"wants to publish [H264], but stream expects [H264 H265]",
+		},
+		{
+			"wrong mpeg-4 audio config",
+			[]conf.AlwaysAvailableTrack{
+				{Codec: "MPEG4Audio", SampleRate: 44100, ChannelCount: 2},
+			},
+			&description.Session{
+				Medias: []*description.Media{
+					{
+						Type: description.MediaTypeAudio,
+						Formats: []format.Format{&format.MPEG4Audio{
+							Config: &mpeg4audio.AudioSpecificConfig{
+								Type:          2,
+								SampleRate:    48000,
+								ChannelConfig: 1,
+							},
+						}},
+					},
+				},
+			},
+			"MPEG-4 audio configuration does not match, is type=2, sampleRate=48000, " +
+				"channelCount=1, but stream expects type=2, sampleRate=44100, channelCount=2",
+		},
+		{
+			"wrong g711 config",
+			[]conf.AlwaysAvailableTrack{
+				{Codec: "G711", MULaw: true, SampleRate: 8000, ChannelCount: 2},
+			},
+			&description.Session{
+				Medias: []*description.Media{
+					{
+						Type: description.MediaTypeAudio,
+						Formats: []format.Format{&format.G711{
+							MULaw:        false,
+							SampleRate:   8000,
+							ChannelCount: 2,
+						}},
+					},
+				},
+			},
+			"G711 configuration does not match, is MULaw=false, sampleRate=8000, " +
+				"channelCount=2, but stream expects MULaw=true, sampleRate=8000, channelCount=2",
+		},
+		{
+			"wrong lpcm config",
+			[]conf.AlwaysAvailableTrack{
+				{Codec: "LPCM", SampleRate: 44100, ChannelCount: 2},
+			},
+			&description.Session{
+				Medias: []*description.Media{
+					{
+						Type: description.MediaTypeAudio,
+						Formats: []format.Format{&format.LPCM{
+							BitDepth:     16,
+							SampleRate:   48000,
+							ChannelCount: 2,
+						}},
+					},
+				},
+			},
+			"LPCM configuration does not match, is bitDepth=16, sampleRate=48000, " +
+				"channelCount=2, but stream expects bitDepth=16, sampleRate=44100, channelCount=2",
+		},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			strm := &Stream{
+				AlwaysAvailable:       true,
+				AlwaysAvailableTracks: ca.tracks,
+				WriteQueueSize:        512,
+				RTPMaxPayloadSize:     1450,
+				ReplaceNTP:            true,
+				Parent:                &nilLogger{},
+			}
+			err := strm.Initialize()
+			require.NoError(t, err)
+			defer strm.Close()
+
+			subStream := &SubStream{
+				Stream:        strm,
+				CurDesc:       ca.desc,
+				UseRTPPackets: false,
+			}
+			err = subStream.Initialize()
+			require.EqualError(t, err, ca.err)
 		})
 	}
 }

@@ -262,6 +262,7 @@ type Conf struct {
 	AuthInternalUsers         []AuthInternalUser           `json:"authInternalUsers"`
 	AuthHTTPAddress           string                       `json:"authHTTPAddress"`
 	ExternalAuthenticationURL *string                      `json:"externalAuthenticationURL,omitempty"` // deprecated
+	AuthHTTPFingerprint       string                       `json:"authHTTPFingerprint"`
 	AuthHTTPExclude           []AuthInternalUserPermission `json:"authHTTPExclude"`
 	AuthJWTJWKS               string                       `json:"authJWTJWKS"`
 	AuthJWTJWKSFingerprint    string                       `json:"authJWTJWKSFingerprint"`
@@ -339,8 +340,8 @@ type Conf struct {
 	// RTMP server
 	RTMP           bool       `json:"rtmp"`
 	RTMPDisable    *bool      `json:"rtmpDisable,omitempty"` // deprecated
-	RTMPAddress    string     `json:"rtmpAddress"`
 	RTMPEncryption Encryption `json:"rtmpEncryption"`
+	RTMPAddress    string     `json:"rtmpAddress"`
 	RTMPSAddress   string     `json:"rtmpsAddress"`
 	RTMPServerKey  string     `json:"rtmpServerKey"`
 	RTMPServerCert string     `json:"rtmpServerCert"`
@@ -418,9 +419,10 @@ func (conf *Conf) setDefaults() {
 	conf.ReadTimeout = 10 * Duration(time.Second)
 	conf.WriteTimeout = 10 * Duration(time.Second)
 	conf.WriteQueueSize = 512
-	conf.UDPMaxPayloadSize = 1472
+	conf.UDPMaxPayloadSize = 1452
 
 	// Authentication
+	conf.AuthMethod = AuthMethodInternal
 	conf.AuthInternalUsers = defaultAuthInternalUsers
 	conf.AuthHTTPExclude = []AuthInternalUserPermission{
 		{
@@ -462,6 +464,7 @@ func (conf *Conf) setDefaults() {
 
 	// RTSP server
 	conf.RTSP = true
+	conf.RTSPEncryption = EncryptionNo
 	conf.RTSPTransports = RTSPTransports{
 		gortsplib.ProtocolUDP:          {},
 		gortsplib.ProtocolUDPMulticast: {},
@@ -484,6 +487,7 @@ func (conf *Conf) setDefaults() {
 
 	// RTMP server
 	conf.RTMP = true
+	conf.RTMPEncryption = EncryptionNo
 	conf.RTMPAddress = ":1935"
 	conf.RTMPSAddress = ":1936"
 	conf.RTMPServerKey = "server.key"

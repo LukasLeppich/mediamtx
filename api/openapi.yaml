@@ -108,6 +108,8 @@ components:
             $ref: '#/components/schemas/AuthInternalUser'
         authHTTPAddress:
           type: string
+        authHTTPFingerprint:
+          type: string
         authHTTPExclude:
           type: array
           items:
@@ -254,9 +256,9 @@ components:
         # RTMP server
         rtmp:
           type: boolean
-        rtmpAddress:
-          type: string
         rtmpEncryption:
+          type: string
+        rtmpAddress:
           type: string
         rtmpsAddress:
           type: string
@@ -374,10 +376,18 @@ components:
           format: int64
         srtReadPassphrase:
           type: string
-        fallback:
-          type: string
         useAbsoluteTimestamp:
           type: boolean
+
+        # Always available
+        alwaysAvailable:
+          type: boolean
+        alwaysAvailableFile:
+          type: string
+        alwaysAvailableTracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlwaysAvailableTrack'
 
         # Record
         record:
@@ -410,6 +420,13 @@ components:
           type: string
         rtspRangeStart:
           type: string
+        rtspUDPSourcePortRange:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: integer
+            format: uint64
 
         # RTP source
         rtpSDP:
@@ -579,6 +596,16 @@ components:
         ready:
           type: boolean
         readyTime:
+          type: string
+          nullable: true
+        available:
+          type: boolean
+        availableTime:
+          type: string
+          nullable: true
+        online:
+          type: boolean
+        onlineTime:
           type: string
           nullable: true
         tracks:
@@ -1089,6 +1116,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SRTConn'
+
+    AlwaysAvailableTrack:
+      type: object
+      properties:
+        codec:
+          type: string
+        sampleRate:
+          type: integer
+          format: int64
+        channelCount:
+          type: integer
+          format: int64
+        muLaw:
+          type: boolean
 
     WebRTCICEServer:
       type: object

@@ -1,3 +1,5 @@
+//go:build enable_linters
+
 package main
 
 import (
@@ -72,21 +74,22 @@ func fillProperty(t *testing.T, rt reflect.Type, existing openAPIProperty) openA
 		rt == reflect.TypeOf(conf.Duration(0)) ||
 		rt == reflect.TypeOf(conf.IPNetwork{}) ||
 		rt == reflect.TypeOf(conf.Credential("")) ||
-		rt == reflect.TypeOf(conf.RecordFormat(0)) ||
+		rt == reflect.TypeOf(conf.RecordFormat("")) ||
 		rt == reflect.TypeOf(conf.AuthAction("")) ||
-		rt == reflect.TypeOf(conf.Encryption(0)) ||
+		rt == reflect.TypeOf(conf.Encryption("")) ||
 		rt == reflect.TypeOf(conf.RTSPTransport{}) ||
 		rt == reflect.TypeOf(conf.StringSize(0)) ||
-		rt == reflect.TypeOf(conf.RTSPRangeType(0)) ||
+		rt == reflect.TypeOf(conf.RTSPRangeType("")) ||
 		rt == reflect.TypeOf(conf.LogLevel(0)) ||
-		rt == reflect.TypeOf(conf.AuthMethod(0)) ||
+		rt == reflect.TypeOf(conf.AuthMethod("")) ||
 		rt == reflect.TypeOf(conf.LogDestination(0)) ||
 		rt == reflect.TypeOf(conf.RTSPAuthMethod(0)) ||
 		rt == reflect.TypeOf(conf.HLSVariant(0)) ||
 		rt == reflect.TypeOf(defs.APIRTMPConnState("")) ||
 		rt == reflect.TypeOf(defs.APIWebRTCSessionState("")) ||
 		rt == reflect.TypeOf(defs.APISRTConnState("")) ||
-		rt == reflect.TypeOf(defs.APIRTSPSessionState("")):
+		rt == reflect.TypeOf(defs.APIRTSPSessionState("")) ||
+		rt == reflect.TypeOf(conf.Codec("")):
 		return openAPIProperty{Type: "string"}
 
 	case rt == reflect.TypeOf(conf.RTSPTransports{}):
@@ -125,8 +128,8 @@ func fillProperty(t *testing.T, rt reflect.Type, existing openAPIProperty) openA
 	}
 }
 
-func TestAPIDocs(t *testing.T) {
-	byts, err := os.ReadFile("../../api/openapi.yaml")
+func TestGo2API(t *testing.T) {
+	byts, err := os.ReadFile("../../../api/openapi.yaml")
 	require.NoError(t, err)
 
 	var doc openAPI
@@ -138,8 +141,8 @@ func TestAPIDocs(t *testing.T) {
 		goStruct   any
 	}{
 		{
-			"Info",
-			defs.APIInfo{},
+			"AlwaysAvailableTrack",
+			conf.AlwaysAvailableTrack{},
 		},
 		{
 			"AuthInternalUser",
@@ -154,6 +157,22 @@ func TestAPIDocs(t *testing.T) {
 			conf.Conf{},
 		},
 		{
+			"HLSMuxer",
+			defs.APIHLSMuxer{},
+		},
+		{
+			"HLSMuxerList",
+			defs.APIHLSMuxerList{},
+		},
+		{
+			"Info",
+			defs.APIInfo{},
+		},
+		{
+			"Path",
+			defs.APIPath{},
+		},
+		{
 			"PathConf",
 			conf.Path{},
 		},
@@ -162,28 +181,16 @@ func TestAPIDocs(t *testing.T) {
 			defs.APIPathConfList{},
 		},
 		{
-			"Path",
-			defs.APIPath{},
-		},
-		{
 			"PathList",
 			defs.APIPathList{},
-		},
-		{
-			"PathSource",
-			defs.APIPathSource{},
 		},
 		{
 			"PathReader",
 			defs.APIPathReader{},
 		},
 		{
-			"HLSMuxer",
-			defs.APIHLSMuxer{},
-		},
-		{
-			"HLSMuxerList",
-			defs.APIHLSMuxerList{},
+			"PathSource",
+			defs.APIPathSource{},
 		},
 		{
 			"Recording",
