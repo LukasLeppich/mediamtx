@@ -181,7 +181,7 @@ func (m *Manager) authenticateHTTP(req *Request) error {
 	}
 
 	tr := &http.Transport{
-		TLSClientConfig: tls.MakeConfig(u.Hostname(), m.HTTPFingerprint),
+		TLSClientConfig: tls.MakeConfig(u.Hostname(), m.HTTPFingerprint, m.TrustStore),
 	}
 	defer tr.CloseIdleConnections()
 
