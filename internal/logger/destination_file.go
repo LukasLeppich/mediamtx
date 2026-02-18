@@ -3,21 +3,34 @@ package logger
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type destinationFile struct {
 	structured bool
-	file       *os.File
+	file       io.WriteCloser
 	buf        bytes.Buffer
 }
 
-func newDestinationFile(structured bool, filePath string) (destination, error) {
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return nil, err
+func newDestinationFile(structured bool, filePath string, limitMB int) (destination, error) {
+	var f io.WriteCloser
+	var err error
+	if limitMB <= 0 {
+		f, err = os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		f = &lumberjack.Logger{
+			Filename:   filePath,
+			MaxSize:    limitMB,
+			MaxBackups: 0,
+		}
 	}
 
 	return &destinationFile{
