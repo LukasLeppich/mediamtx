@@ -3,6 +3,7 @@ package core
 
 import (
 	"context"
+	"crypto/x509"
 	_ "embed"
 	"fmt"
 	"os"
@@ -333,9 +334,12 @@ func (p *Core) createResources(initial bool) error {
 		p.externalCmdPool.Initialize()
 	}
 
-	trustStore, err := tls.LoadTrustStore(p.conf.AuthJWTTrustStorePEM)
-	if err != nil {
-		return err
+	var trustStore *x509.CertPool
+	if p.conf.AuthJWTTrustStorePEM != "" {
+		trustStore, err = tls.LoadTrustStore(p.conf.AuthJWTTrustStorePEM)
+		if err != nil {
+			return err
+		}
 	}
 
 	if p.authManager == nil {
