@@ -17,6 +17,7 @@ type Logger struct {
 	Destinations []Destination
 	Structured   bool
 	File         string
+	FileLimitMB  int
 	SysLogPrefix string
 
 	timeNow      func() time.Time
@@ -40,7 +41,7 @@ func (l *Logger) Initialize() error {
 			l.destinations = append(l.destinations, newDestionationStdout(l.Structured, l.stdout))
 
 		case DestinationFile:
-			dest, err := newDestinationFile(l.Structured, l.File)
+			dest, err := newDestinationFile(l.Structured, l.File, l.FileLimitMB)
 			if err != nil {
 				l.Close()
 				return err

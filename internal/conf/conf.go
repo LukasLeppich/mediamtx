@@ -246,6 +246,7 @@ type Conf struct {
 	LogDestinations     LogDestinations `json:"logDestinations"`
 	LogStructured       bool            `json:"logStructured"`
 	LogFile             string          `json:"logFile"`
+	LogFileLimitMB      int             `json:"logFileLimitMB"`
 	SysLogPrefix        string          `json:"sysLogPrefix"`
 	ReadTimeout         Duration        `json:"readTimeout"`
 	WriteTimeout        Duration        `json:"writeTimeout"`

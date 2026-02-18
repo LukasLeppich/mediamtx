@@ -14,6 +14,8 @@ logDestinations: [stdout]
 logStructured: no
 # When "file" is in logDestinations, this is the file which will receive logs.
 logFile: mediamtx.log
+# When "file" is in logDestinations and this value is above 0, this will limit the size of logFile.
+logFileLimitMB: 0
 # When "syslog" is in logDestinations, use prefix for logs.
 sysLogPrefix: mediamtx
 

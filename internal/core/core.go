@@ -296,6 +296,7 @@ func (p *Core) createResources(initial bool) error {
 			Destinations: p.conf.LogDestinations.ToDestinations(),
 			Structured:   p.conf.LogStructured,
 			File:         p.conf.LogFile,
+			FileLimitMB:  p.conf.LogFileLimitMB,
 			SysLogPrefix: p.conf.SysLogPrefix,
 		}
 		err = i.Initialize()
@@ -721,6 +722,7 @@ func (p *Core) closeResources(newConf *conf.Conf, calledByAPI bool) {
 		newConf.LogLevel != p.conf.LogLevel ||
 		!reflect.DeepEqual(newConf.LogDestinations, p.conf.LogDestinations) ||
 		newConf.LogFile != p.conf.LogFile ||
+		newConf.LogFileLimitMB != p.conf.LogFileLimitMB ||
 		newConf.SysLogPrefix != p.conf.SysLogPrefix ||
 		newConf.LogStructured != p.conf.LogStructured
 
